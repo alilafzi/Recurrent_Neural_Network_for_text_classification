@@ -7,10 +7,38 @@ The traditional approach for text classification is to represent the words withi
 After running each of the aforementioned commands, we could see the model size, classification accuracy, and the resultant confusion matrix in the output of the corresponding cell within the notebook. First of all, we see that the model size (the number of learnable parameters) has been reduced by a factor of 30, approximately. We also note that the drop in the training loss is more compared to the one-hot case. Consequently, the performance on the test set in terms of overall classification accuracy and correct prediction of negative reviews is better. This improved performance makes sense as the model capacity has decreased compared to the constant amount of training data. <br>
 
 ## Task 2 
-
+The Vanilla RNN has the drawback of not overcoming the issue of vanishing gradients in some cases. Therefore, in this task, this issue is addressed by adding 1 and 2 gating mechanisms for storing the previous information as well as taking advantage of Gated Recurrent Units (GRUs) as described below: <br>
+This task is completely done on the “40.tar.gz” dataset, like the first task. The TextNetOrder2, which contains a single gating mechanism, is called using “!python3 text_classification_with_TEXTnetOrder2.py”. <br>
+The python file “classification_with_TEXTnetOrder2_double_gating.py” includes the implementation of an additional gating mechanism, which is basically a cell that stores the information at time t-2. The borrowed class “modified_TEXTnetOrder2” overrides the __init__ and forward methods to account for the new cell. Moreover, the class “modified_text_classification” overwrites both run_for_training and run_for_testing methods to include the newly added cell as well as conditions on when and what information each of these cells (storing information at t-1 and t-2) should transfer to the hidden state at the current time. “!python3 classification_with_TEXTnetOrder2_double_gating.py” in the “Final.ipynb” calls the aforementioned implementation having the following results. The first thing we note here is the increased number of model parameters as a consequence of adding an extra cell compared to the previous case with a single cell. <br>
+The GRU code is also implemented by “!python3 text_classification_with_GRU.py” completely borrowed from DLStudio. We see the model size has dramatically increased. <br>
+To manage the model size better as well as improving its performance, GRU has been implemented with binary encoding. By “!python3 text_classification_with_GRU_binary_encoding.py”, we see the results of this implementation. The model size decreases significantly, and the performance improves a lot. <br>
 
 ## Task 3
+Since the lengths of reviews are different, we could not take advantage of the benefits of batching in the previous tasks. To incorporate batching, we do either of the following to make all the reviews the same length: <br>
+1- Finding the mean length of reviews, truncating the longer ones, padding the shorter ones with 0’s so that they all have the average length. <br>
+2- Padding all the reviews with 0’s until they reach the length of the longest review. <br>
+The results have been analyzed with the following 3 scenarios: <br><br>
 
+### Batching with TextNet One-Hot:
+The TextNet file is called again here with the same number of epochs and learning rate, but this time on the smallest dataset (3.tar.gz). <br>
+We now implement the batching effect by taking the second criterion into account, i.e. making all the reviews having the length of the longest review. In the python file “text_classification_with_TEXTnet_batching.py”, the class “modified_sentiment_analysis” contains a new method “get_max_review_length” that calculates the longest review length and the overridden method “review_to_tensor” that creates the review tensor using this longest length. Within the class “modified_text_classification”, the method “run_code_for_training_with_TEXTnet” has been overwritten to now account for the existence of batches in training.
+By “!python3 text_classification_with_TEXTnet_batching.py”, the aforementioned implementation is called for a batch size of 5. <br>
+Next, we implement the first criterion for enabling batching, i.e. to have all the reviews with their mean length. This is reflected in “text_classification_with_TEXTnet_batching_mean_review.py”. The implementation is very similar to the last case, except that in the “modified_sentiment_analysis” class, we now have a new method “get_mean_review_length” that calculates the average length of reviews. In addition, the overridden review_to_tensor method now builds the review tensors with the average lengths.
+By “!python3 text_classification_with_TEXTnet_batching_mean_review.py”, this implementation is called with the same batch size. <br>
+As we can see, the performance on the test set is very bad for all 3 cases, which is because the ratio of the model size to the training size is very large as well as the existence of vanishing gradients. Therefore, it is very hard to judge the effect of batch size because of which, we move onto the next scenario. <br><br>
+
+### Batching with TextNetOrder2 One-Hot:
+The TextNetOrder2 of the DLStudio is called by “!python3 text_classification_with_TEXTnetOrder2.py” on the same smallest dataset and with the same parameters, with the hope to resolve the vanishing gradients issues to some extent to better reflect the batching effect. <br>
+The implementation of batching on TextNetOrder2 is very similar to what was discussed for TextNet, except that there is a new inherited class “modified_TEXTnetOrder2” in which the method “initialize_cell” is overwritten to account for the batch size. All parameters also remain the same. By “!python3 text_classification_with_TEXTnetOrder2_max_length_batching.py”, the batching based on the maximum length is called. <br>
+Similarly, by “!python3 text_classification_with_TEXTnetOrder2_mean_length_batching.py”, the batching based on the average length is called. <br>
+As we have noticed, by switching to TextNetOrder2, the model size has further increased leading to bad performances again. Hence, we move to the last scenario, where the model size is reduced. <br><br>
+
+### Batching with TextNetOrder2 Binary Encoding:
+The implementation in this part is almost the same as that of the previous scenario, except that an extra class including the 16-bit binary encoding has been added. Anything else remains the same. <br>
+“!python3 text_classification_with_TEXTnetOrder2_binary_encoding.py” calls the TextNetOrder2 with binary encoding. We first see the model size has significantly reduced. <br>
+“!python3 text_classification_with_TEXTnetOrder2_max_length_batching_with_binary_encoding.py” incorporates the batching based on maximum length with binary encoding. <br>
+“!python3 text_classification_with_TEXTnetOrder2_mean_length_batching_with_binary_encoding.py” incorporates the batching based on mean length with binary encoding. <br>
+Now, we see that with binary encoding, all performances have drastically improved. Both criteria for enabling batching provide us with the same overall accuracy. Although the classification accuracy has slightly reduced compared to no-batching case, the correct predictions on negative reviews have improved with batching. possible reasoning for why batching cannot improve the accuracy could be because the main existing problem is the vanishing gradients that cannot be addressed by stochastic optimization using batching. <br><br>
 
 ## Reference:
 https://engineering.purdue.edu/kak/distDLS/
